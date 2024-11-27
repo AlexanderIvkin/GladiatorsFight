@@ -1,9 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace GladiatorsFight
 {
@@ -11,12 +7,17 @@ namespace GladiatorsFight
     {
         private static Random s_random = new Random();
 
-        public static string GetSpacebar()
+        public static string ReturnSpacebar()
         {
             return " ";
         }
 
-        public static string GetSeparator()
+        public static void CreateEmptyLine()
+        {
+            Console.Write("\n");
+        }
+
+        public static string ReturnSeparator()
         {
             return " | ";
         }
@@ -45,6 +46,7 @@ namespace GladiatorsFight
         static void Main(string[] args)
         {
             Arena arena = new Arena();
+
             arena.Execute();
         }
     }
@@ -55,10 +57,37 @@ namespace GladiatorsFight
         private int _leftFighterIndex;
         private int _rightFighterIndex;
         private bool _tryAgain;
+        Fight _fight;
 
         public Arena()
         {
             FillFightersList();
+        }
+
+        public void Execute()
+        {
+            Console.Clear();
+
+            do
+            {
+                RunMenu();
+                StartFighting();
+                _fight = null;
+                _tryAgain = IsRestart();
+                Console.Clear();
+
+            }
+            while (_tryAgain);
+
+            Console.WriteLine(" Конец.");
+        }
+
+        private bool IsRestart()
+        {
+            ConsoleKey exitKey = ConsoleKey.Escape;
+            Console.WriteLine(exitKey + " - нажмите для выхода. Остальные клавиши для повторного боя.");
+
+            return Console.ReadKey(true).Key != exitKey;
         }
 
         private void FillFightersList()
@@ -78,37 +107,18 @@ namespace GladiatorsFight
             _fighters.Add(new Fighter5(midHealth, highDamage));
         }
 
-        public void Execute()
-        {
-            do
-            {
-                RunMenu();
-                StartFighting();
-                _tryAgain = IsRestart();
-                Console.Clear();
-            }
-            while (_tryAgain);
-
-            Console.WriteLine("Конец.");
-        }
-
-        private bool IsRestart()
-        {
-            ConsoleKey exitKey = ConsoleKey.Escape;
-            Console.WriteLine(exitKey + " - нажмите для выхода. Остальные клавиши для повторного боя.");
-
-            return Console.ReadKey(false).Key != exitKey;
-        }
-
         private void RunMenu()
         {
             Console.WriteLine("Приветствуем вас на Арене нашего безопасного колизея!" +
                 "\nВ бою не пострадает ни одно живое существо - все бойцы смоделированы по каталогу.");
+            UserUtills.CreateEmptyLine();
             ShowFightersLibrary();
+            UserUtills.CreateEmptyLine();
             Console.WriteLine("Боец слева ходит первым, кто же это, под каким номером?");
             _leftFighterIndex = UserUtills.GetIndexFromUserInput(_fighters.Count);
             Console.WriteLine("Ждём номера бойца  справа, ему выпадет второй ход!");
             _rightFighterIndex = UserUtills.GetIndexFromUserInput(_fighters.Count);
+            UserUtills.CreateEmptyLine();
         }
 
         private void ShowFightersLibrary()
@@ -117,7 +127,7 @@ namespace GladiatorsFight
 
             foreach (Fighter fighter in _fighters)
             {
-                Console.Write(count + UserUtills.GetSeparator());
+                Console.Write(count + UserUtills.ReturnSeparator());
                 fighter.ShowInfo();
                 count++;
             }
@@ -125,7 +135,9 @@ namespace GladiatorsFight
 
         private void StartFighting()
         {
-            Fight _fight = new Fight(_fighters[_leftFighterIndex].ReturnNewFighter(), _fighters[_rightFighterIndex].ReturnNewFighter());
+            _fight = new Fight(_fighters[_leftFighterIndex].ReturnNewFighter(), _fighters[_rightFighterIndex].ReturnNewFighter());
+
+            Console.Clear();
 
             _fight.Execute();
         }
@@ -138,7 +150,6 @@ namespace GladiatorsFight
 
         private Fighter _winner;
         private Fighter[] _fighters;
-
 
         public Fight(Fighter leftFighter, Fighter rightFighter)
         {
@@ -155,11 +166,18 @@ namespace GladiatorsFight
                 Rename();
             }
 
+            Console.WriteLine($"Начался бой между {_fighters[LeftFighterIndex].Name} и {_fighters[RightFighterIndex].Name}.");
+            UserUtills.CreateEmptyLine();
+
             while (_fighters[LeftFighterIndex].IsAlive && _fighters[RightFighterIndex].IsAlive)
             {
                 _fighters[LeftFighterIndex].Attack(_fighters[RightFighterIndex]);
+                UserUtills.CreateEmptyLine();
                 _fighters[RightFighterIndex].Attack(_fighters[LeftFighterIndex]);
+                UserUtills.CreateEmptyLine();
             }
+
+            UserUtills.CreateEmptyLine();
 
             if (TryGetWinner(out _winner))
             {
@@ -174,23 +192,6 @@ namespace GladiatorsFight
         private bool IsTheSameName()
         {
             return _fighters[LeftFighterIndex].Name == _fighters[RightFighterIndex].Name;
-        }
-
-        private void Rename()
-        {
-            for (int i = 0; i < _fighters.Length; i++)
-            {
-                switch (i)
-                {
-                    case LeftFighterIndex:
-                        _fighters[i].AddPositionName("Левый");
-                        break;
-
-                    case RightFighterIndex:
-                        _fighters[i].AddPositionName("Правый");
-                        break;
-                }
-            }
         }
 
         private bool TryGetWinner(out Fighter winner)
@@ -213,6 +214,23 @@ namespace GladiatorsFight
 
             return hasWinner;
         }
+
+        private void Rename()
+        {
+            for (int i = 0; i < _fighters.Length; i++)
+            {
+                switch (i)
+                {
+                    case LeftFighterIndex:
+                        _fighters[i].AddPositionName("Левый");
+                        break;
+
+                    case RightFighterIndex:
+                        _fighters[i].AddPositionName("Правый");
+                        break;
+                }
+            }
+        }
     }
 
     interface IDamageable
@@ -223,7 +241,6 @@ namespace GladiatorsFight
     abstract class Fighter : IDamageable
     {
         protected int MaxHealth;
-
         protected int Damage;
         protected int CurrentHealth;
 
@@ -239,8 +256,10 @@ namespace GladiatorsFight
 
         public void AddPositionName(string addedName)
         {
-            Name += UserUtills.GetSpacebar() + addedName;
+            Name += UserUtills.ReturnSpacebar() + addedName;
         }
+
+        public abstract Fighter ReturnNewFighter();
 
         public virtual void TakeDamage(int damage)
         {
@@ -248,19 +267,17 @@ namespace GladiatorsFight
             CurrentHealth -= damage;
         }
 
-        public abstract Fighter ReturnNewFighter();
-
         public virtual void Attack(IDamageable target)
         {
-            Console.Write($"{Name} начинает атаку");
+            Console.Write($"{Name} начинает атаку ");
         }
-
-        protected abstract bool TryApplySpecialAction();
 
         protected internal virtual void ShowInfo()
         {
-            Console.Write($"Имя - {Name}{UserUtills.GetSeparator()}Здоровье - {MaxHealth}{UserUtills.GetSeparator()}Урон - {Damage}{UserUtills.GetSeparator()}");
+            Console.Write($"Имя - {Name}{UserUtills.ReturnSeparator()}Здоровье - {MaxHealth}{UserUtills.ReturnSeparator()}Урон - {Damage}{UserUtills.ReturnSeparator()}");
         }
+
+        protected abstract bool TryApplySpecialAction();
     }
 
     class Fighter1 : Fighter
@@ -279,6 +296,26 @@ namespace GladiatorsFight
             target.TakeDamage(Damage * ReturnCriticalFactor());
         }
 
+        public override Fighter ReturnNewFighter()
+        {
+            return new Fighter1(this.MaxHealth, this.Damage);
+        }
+
+        protected internal override void ShowInfo()
+        {
+            base.ShowInfo();
+            Console.WriteLine(_criticalChance + " процентов, что влупит двойной урон!");
+        }
+
+        protected override bool TryApplySpecialAction()
+        {
+            int minChance = 0;
+            int maxChance = 101;
+            Console.Write(" пробует крит иии...");
+
+            return UserUtills.ReturnRandomValue(minChance, maxChance) <= _criticalChance;
+        }
+
         private int ReturnCriticalFactor()
         {
             int minCriticalFactor = 1;
@@ -295,27 +332,6 @@ namespace GladiatorsFight
                 return minCriticalFactor;
             }
         }
-
-        protected override bool TryApplySpecialAction()
-        {
-            int minChance = 0;
-            int maxChance = 101;
-            Console.Write(" пробует крит иии...");
-
-            return UserUtills.ReturnRandomValue(minChance, maxChance) <= _criticalChance;
-        }
-
-        public override Fighter ReturnNewFighter()
-        {
-            return new Fighter1(this.MaxHealth, this.Damage);
-        }
-
-        protected internal override void ShowInfo()
-        {
-            base.ShowInfo();
-            Console.WriteLine(_criticalChance + " процентов, что влупит двойной урон!");
-        }
-
     }
 
     class Fighter2 : Fighter
@@ -351,6 +367,8 @@ namespace GladiatorsFight
             {
                 target.TakeDamage(Damage);
             }
+
+            _turnsCount++;
         }
         protected override bool TryApplySpecialAction()
         {
@@ -379,7 +397,7 @@ namespace GladiatorsFight
 
         public Fighter3(int health, int damage) : base(health, damage)
         {
-            Name = "Пожирающий ярость";
+            Name = "Мазохист";
         }
 
         public override void Attack(IDamageable target)
@@ -433,7 +451,7 @@ namespace GladiatorsFight
         protected internal override void ShowInfo()
         {
             base.ShowInfo();
-            Console.WriteLine($"За удар копит {_rageByDamage} ярости, накопив {_rageToHeal} - преобразует её в здоровье.");
+            Console.WriteLine($"Копит получая урон {_rageByDamage} ярости, накопив {_rageToHeal} - преобразует её в здоровье.");
         }
 
         public override Fighter ReturnNewFighter()
