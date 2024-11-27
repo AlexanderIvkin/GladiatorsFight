@@ -7,24 +7,19 @@ namespace GladiatorsFight
     {
         private static Random s_random = new Random();
 
-        public static string ReturnSpacebar()
-        {
-            return " ";
-        }
-
         public static void CreateEmptyLine()
         {
             Console.Write("\n");
         }
 
-        public static string ReturnSeparator()
+        public static string ReturnSpacebar()
         {
-            return " | ";
+            return " ";
         }
 
-        public static int ReturnRandomValue(int leftBound, int rightBound)
+        public static int ReturnRandomValue(int leftBoundInclusive, int rightBound)
         {
-            return s_random.Next(leftBound, rightBound);
+            return s_random.Next(leftBoundInclusive, rightBound);
         }
 
         public static int GetIndexFromUserInput(int maxValue)
@@ -38,6 +33,11 @@ namespace GladiatorsFight
             while (int.TryParse(Console.ReadLine(), out userInput) == false || userInput <= 0 || userInput > maxValue);
 
             return userInput - 1;
+        }
+
+        public static string ReturnSeparator()
+        {
+            return " | ";
         }
     }
 
@@ -56,8 +56,6 @@ namespace GladiatorsFight
         private List<Fighter> _fighters = new List<Fighter>();
         private int _leftFighterIndex;
         private int _rightFighterIndex;
-        private bool _tryAgain;
-        Fight _fight;
 
         public Arena()
         {
@@ -66,18 +64,13 @@ namespace GladiatorsFight
 
         public void Execute()
         {
-            Console.Clear();
-
             do
             {
                 RunMenu();
+                UserUtills.CreateEmptyLine();
                 StartFighting();
-                _fight = null;
-                _tryAgain = IsRestart();
-                Console.Clear();
-
             }
-            while (_tryAgain);
+            while (IsRestart());
 
             Console.WriteLine(" Конец.");
         }
@@ -135,11 +128,9 @@ namespace GladiatorsFight
 
         private void StartFighting()
         {
-            _fight = new Fight(_fighters[_leftFighterIndex].ReturnNewFighter(), _fighters[_rightFighterIndex].ReturnNewFighter());
+            Fight fight = new Fight(_fighters[_leftFighterIndex].ReturnNewFighter(), _fighters[_rightFighterIndex].ReturnNewFighter());
 
-            Console.Clear();
-
-            _fight.Execute();
+            fight.Execute();
         }
     }
 
@@ -189,6 +180,23 @@ namespace GladiatorsFight
             }
         }
 
+        private void Rename()
+        {
+            for (int i = 0; i < _fighters.Length; i++)
+            {
+                switch (i)
+                {
+                    case LeftFighterIndex:
+                        _fighters[i].AddPositionName("Левый");
+                        break;
+
+                    case RightFighterIndex:
+                        _fighters[i].AddPositionName("Правый");
+                        break;
+                }
+            }
+        }
+
         private bool IsTheSameName()
         {
             return _fighters[LeftFighterIndex].Name == _fighters[RightFighterIndex].Name;
@@ -213,23 +221,6 @@ namespace GladiatorsFight
             }
 
             return hasWinner;
-        }
-
-        private void Rename()
-        {
-            for (int i = 0; i < _fighters.Length; i++)
-            {
-                switch (i)
-                {
-                    case LeftFighterIndex:
-                        _fighters[i].AddPositionName("Левый");
-                        break;
-
-                    case RightFighterIndex:
-                        _fighters[i].AddPositionName("Правый");
-                        break;
-                }
-            }
         }
     }
 
@@ -298,7 +289,7 @@ namespace GladiatorsFight
 
         public override Fighter ReturnNewFighter()
         {
-            return new Fighter1(this.MaxHealth, this.Damage);
+            return new Fighter1(MaxHealth, Damage);
         }
 
         protected internal override void ShowInfo()
@@ -370,11 +361,10 @@ namespace GladiatorsFight
 
             _turnsCount++;
         }
-        protected override bool TryApplySpecialAction()
-        {
-            Console.Write(" пробует второй удар иии...");
 
-            return _turnsCount % _doubleAttackCount == 0;
+        public override Fighter ReturnNewFighter()
+        {
+            return new Fighter2(MaxHealth, Damage);
         }
 
         protected internal override void ShowInfo()
@@ -383,9 +373,11 @@ namespace GladiatorsFight
             Console.WriteLine($"Каждую {_doubleAttackCount} атаку бьёт дважды!");
         }
 
-        public override Fighter ReturnNewFighter()
+        protected override bool TryApplySpecialAction()
         {
-            return new Fighter2(this.MaxHealth, this.Damage);
+            Console.Write(" пробует второй удар иии...");
+
+            return _turnsCount % _doubleAttackCount == 0;
         }
     }
 
@@ -423,6 +415,23 @@ namespace GladiatorsFight
             AddRage();
         }
 
+        public override Fighter ReturnNewFighter()
+        {
+            return new Fighter3(MaxHealth, Damage);
+        }
+
+        protected internal override void ShowInfo()
+        {
+            base.ShowInfo();
+            Console.WriteLine($"Копит получая урон {_rageByDamage} ярости, накопив {_rageToHeal} - преобразует её в здоровье.");
+        }
+
+        protected override bool TryApplySpecialAction()
+        {
+            Console.Write(" пытается преобразовать ярость в здоровье и...");
+            return _currentRage == _rageToHeal;
+        }
+
         private void AddRage()
         {
             Console.WriteLine(Name + " копит ярость.");
@@ -440,23 +449,6 @@ namespace GladiatorsFight
             }
 
             _currentRage = 0;
-        }
-
-        protected override bool TryApplySpecialAction()
-        {
-            Console.Write(" пытается преобразовать ярость в здоровье и...");
-            return _currentRage == _rageToHeal;
-        }
-
-        protected internal override void ShowInfo()
-        {
-            base.ShowInfo();
-            Console.WriteLine($"Копит получая урон {_rageByDamage} ярости, накопив {_rageToHeal} - преобразует её в здоровье.");
-        }
-
-        public override Fighter ReturnNewFighter()
-        {
-            return new Fighter3(this.MaxHealth, this.Damage);
         }
     }
 
@@ -491,16 +483,15 @@ namespace GladiatorsFight
             target.TakeDamage(currenDamage);
         }
 
-        private void AccumulateMana()
+        public override Fighter ReturnNewFighter()
         {
-            Console.WriteLine("Нет! Просто копит ману.");
-            _mana += _manaRegeneration;
+            return new Fighter4(MaxHealth, Damage);
         }
 
-        private void SpendMana()
+        protected internal override void ShowInfo()
         {
-            Console.WriteLine("Да! У него получается.");
-            _mana -= _manaPriceFireball;
+            base.ShowInfo();
+            Console.WriteLine($"Есть {_mana} маны. Файерболл наносит {_fireballDamage} урона, а стоит {_manaPriceFireball} маны. Накопление маны {_manaRegeneration} за ход.");
         }
 
         protected override bool TryApplySpecialAction()
@@ -510,22 +501,22 @@ namespace GladiatorsFight
             return _mana >= _manaPriceFireball;
         }
 
-        protected internal override void ShowInfo()
+        private void SpendMana()
         {
-            base.ShowInfo();
-            Console.WriteLine($"Есть {_mana} маны. Файерболл наносит {_fireballDamage} урона, а стоит {_manaPriceFireball} маны. Накопление маны {_manaRegeneration} за ход.");
+            Console.WriteLine("Да! У него получается.");
+            _mana -= _manaPriceFireball;
         }
 
-        public override Fighter ReturnNewFighter()
+        private void AccumulateMana()
         {
-            return new Fighter4(this.MaxHealth, this.Damage);
+            Console.WriteLine("Нет! Просто копит ману.");
+            _mana += _manaRegeneration;
         }
-
     }
 
     class Fighter5 : Fighter
     {
-        private int _dodgeChance = 33;
+        private int _dodgeChance = 25;
 
         public Fighter5(int health, int damage) : base(health, damage)
         {
@@ -537,11 +528,6 @@ namespace GladiatorsFight
             base.Attack(target);
 
             target.TakeDamage(Damage);
-        }
-
-        public override Fighter ReturnNewFighter()
-        {
-            return new Fighter5(this.MaxHealth, this.Damage);
         }
 
         public override void TakeDamage(int damage)
@@ -556,17 +542,22 @@ namespace GladiatorsFight
             }
         }
 
-        protected override bool TryApplySpecialAction()
+        public override Fighter ReturnNewFighter()
         {
-            int maxChance = 101;
-
-            return UserUtills.ReturnRandomValue(0, maxChance) >= _dodgeChance;
+            return new Fighter5(MaxHealth, Damage);
         }
 
         protected internal override void ShowInfo()
         {
             base.ShowInfo();
             Console.WriteLine($"Имеет {_dodgeChance} процентный шанс уворота от любой атаки/заклинания.");
+        }
+
+        protected override bool TryApplySpecialAction()
+        {
+            int maxChance = 101;
+
+            return UserUtills.ReturnRandomValue(0, maxChance) >= _dodgeChance;
         }
     }
 }
