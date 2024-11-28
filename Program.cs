@@ -171,6 +171,11 @@ namespace GladiatorsFight
         }
     }
 
+    interface IDamageable
+    {
+        void TakeDamage(int damage);
+    }
+
     abstract class Fighter : IDamageable
     {
         protected int MaxHealth;
@@ -211,11 +216,6 @@ namespace GladiatorsFight
         }
 
         protected abstract bool TryApplySpecialAction();
-    }
-
-    interface IDamageable
-    {
-        void TakeDamage(int damage);
     }
 
     class Fighter1 : Fighter
