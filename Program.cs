@@ -3,44 +3,6 @@ using System.Collections.Generic;
 
 namespace GladiatorsFight
 {
-    static class UserUtills
-    {
-        private static Random s_random = new Random();
-
-        public static void CreateEmptyLine()
-        {
-            Console.Write("\n");
-        }
-
-        public static string ReturnSpacebar()
-        {
-            return " ";
-        }
-
-        public static int ReturnRandomValue(int leftBoundInclusive, int rightBound)
-        {
-            return s_random.Next(leftBoundInclusive, rightBound);
-        }
-
-        public static int GetIndexFromUserInput(int maxValue)
-        {
-            int userInput;
-
-            do
-            {
-                Console.Write("Введите число: ");
-            }
-            while (int.TryParse(Console.ReadLine(), out userInput) == false || userInput <= 0 || userInput > maxValue);
-
-            return userInput - 1;
-        }
-
-        public static string ReturnSeparator()
-        {
-            return " | ";
-        }
-    }
-
     internal class Program
     {
         static void Main(string[] args)
@@ -54,8 +16,8 @@ namespace GladiatorsFight
     class Arena
     {
         private List<Fighter> _fighters = new List<Fighter>();
-        private int _leftFighterIndex;
-        private int _rightFighterIndex;
+        private Fighter _leftFighter;
+        private Fighter _rightFighter;
 
         public Arena()
         {
@@ -68,7 +30,7 @@ namespace GladiatorsFight
             {
                 RunMenu();
                 UserUtills.CreateEmptyLine();
-                StartFighting();
+                HoldFight();
             }
             while (IsRestart());
 
@@ -97,7 +59,7 @@ namespace GladiatorsFight
             _fighters.Add(new Fighter2(highHealth, midDamage));
             _fighters.Add(new Fighter3(midHealth, midDamage));
             _fighters.Add(new Fighter4(lowHealth, lowDamage));
-            _fighters.Add(new Fighter5(midHealth, highDamage));
+            _fighters.Add(new Fighter5(lowHealth, highDamage));
         }
 
         private void RunMenu()
@@ -108,9 +70,9 @@ namespace GladiatorsFight
             ShowFightersLibrary();
             UserUtills.CreateEmptyLine();
             Console.WriteLine("Боец слева ходит первым, кто же это, под каким номером?");
-            _leftFighterIndex = UserUtills.GetIndexFromUserInput(_fighters.Count);
+            _leftFighter = _fighters[UserUtills.GetIndexFromUserInput(_fighters.Count)].Clone();
             Console.WriteLine("Ждём номера бойца  справа, ему выпадет второй ход!");
-            _rightFighterIndex = UserUtills.GetIndexFromUserInput(_fighters.Count);
+            _rightFighter = _fighters[UserUtills.GetIndexFromUserInput(_fighters.Count)].Clone();
             UserUtills.CreateEmptyLine();
         }
 
@@ -126,9 +88,9 @@ namespace GladiatorsFight
             }
         }
 
-        private void StartFighting()
+        private void HoldFight()
         {
-            Fight fight = new Fight(_fighters[_leftFighterIndex].ReturnNewFighter(), _fighters[_rightFighterIndex].ReturnNewFighter());
+            Fight fight = new Fight(_leftFighter, _rightFighter);
 
             fight.Execute();
         }
@@ -136,35 +98,31 @@ namespace GladiatorsFight
 
     class Fight
     {
-        private const int LeftFighterIndex = 0;
-        private const int RightFighterIndex = 1;
-
+        private Fighter _leftFighter;
+        private Fighter _rightFighter;
         private Fighter _winner;
-        private Fighter[] _fighters;
 
         public Fight(Fighter leftFighter, Fighter rightFighter)
         {
-            _fighters = new Fighter[]
-            {
-                leftFighter, rightFighter
-            };
+            _leftFighter = leftFighter;
+            _rightFighter = rightFighter;
         }
 
         public void Execute()
         {
-            if (IsTheSameName())
+            if (IsSameNameFighters())
             {
-                Rename();
+                RenameFighter();
             }
 
-            Console.WriteLine($"Начался бой между {_fighters[LeftFighterIndex].Name} и {_fighters[RightFighterIndex].Name}.");
+            Console.WriteLine($"Начался бой между {_leftFighter.Name} и {_rightFighter.Name}.");
             UserUtills.CreateEmptyLine();
 
-            while (_fighters[LeftFighterIndex].IsAlive && _fighters[RightFighterIndex].IsAlive)
+            while (_leftFighter.IsAlive && _rightFighter.IsAlive)
             {
-                _fighters[LeftFighterIndex].Attack(_fighters[RightFighterIndex]);
+                _leftFighter.Attack(_rightFighter);
                 UserUtills.CreateEmptyLine();
-                _fighters[RightFighterIndex].Attack(_fighters[LeftFighterIndex]);
+                _rightFighter.Attack(_leftFighter);
                 UserUtills.CreateEmptyLine();
             }
 
@@ -180,39 +138,28 @@ namespace GladiatorsFight
             }
         }
 
-        private void Rename()
+        private void RenameFighter()
         {
-            for (int i = 0; i < _fighters.Length; i++)
-            {
-                switch (i)
-                {
-                    case LeftFighterIndex:
-                        _fighters[i].AddPositionName("Левый");
-                        break;
-
-                    case RightFighterIndex:
-                        _fighters[i].AddPositionName("Правый");
-                        break;
-                }
-            }
+            _leftFighter.AddPositionName("Левый");
+            _rightFighter.AddPositionName("Правый");
         }
 
-        private bool IsTheSameName()
+        private bool IsSameNameFighters()
         {
-            return _fighters[LeftFighterIndex].Name == _fighters[RightFighterIndex].Name;
+            return _leftFighter.Name == _rightFighter.Name;
         }
 
         private bool TryGetWinner(out Fighter winner)
         {
             bool hasWinner = true;
 
-            if (_fighters[LeftFighterIndex].IsAlive)
+            if (_leftFighter.IsAlive)
             {
-                winner = _fighters[LeftFighterIndex];
+                winner = _leftFighter;
             }
-            else if (_fighters[RightFighterIndex].IsAlive)
+            else if (_rightFighter.IsAlive)
             {
-                winner = _fighters[RightFighterIndex];
+                winner = _rightFighter;
             }
             else
             {
@@ -222,11 +169,6 @@ namespace GladiatorsFight
 
             return hasWinner;
         }
-    }
-
-    interface IDamageable
-    {
-        void TakeDamage(int damage);
     }
 
     abstract class Fighter : IDamageable
@@ -250,7 +192,7 @@ namespace GladiatorsFight
             Name += UserUtills.ReturnSpacebar() + addedName;
         }
 
-        public abstract Fighter ReturnNewFighter();
+        public abstract Fighter Clone();
 
         public virtual void TakeDamage(int damage)
         {
@@ -271,6 +213,11 @@ namespace GladiatorsFight
         protected abstract bool TryApplySpecialAction();
     }
 
+    interface IDamageable
+    {
+        void TakeDamage(int damage);
+    }
+
     class Fighter1 : Fighter
     {
         private int _criticalChance = 30;
@@ -287,7 +234,7 @@ namespace GladiatorsFight
             target.TakeDamage(Damage * ReturnCriticalFactor());
         }
 
-        public override Fighter ReturnNewFighter()
+        public override Fighter Clone()
         {
             return new Fighter1(MaxHealth, Damage);
         }
@@ -362,7 +309,7 @@ namespace GladiatorsFight
             _turnsCount++;
         }
 
-        public override Fighter ReturnNewFighter()
+        public override Fighter Clone()
         {
             return new Fighter2(MaxHealth, Damage);
         }
@@ -415,7 +362,7 @@ namespace GladiatorsFight
             AddRage();
         }
 
-        public override Fighter ReturnNewFighter()
+        public override Fighter Clone()
         {
             return new Fighter3(MaxHealth, Damage);
         }
@@ -483,7 +430,7 @@ namespace GladiatorsFight
             target.TakeDamage(currenDamage);
         }
 
-        public override Fighter ReturnNewFighter()
+        public override Fighter Clone()
         {
             return new Fighter4(MaxHealth, Damage);
         }
@@ -542,7 +489,7 @@ namespace GladiatorsFight
             }
         }
 
-        public override Fighter ReturnNewFighter()
+        public override Fighter Clone()
         {
             return new Fighter5(MaxHealth, Damage);
         }
@@ -558,6 +505,44 @@ namespace GladiatorsFight
             int maxChance = 101;
 
             return UserUtills.ReturnRandomValue(0, maxChance) >= _dodgeChance;
+        }
+    }
+
+    static class UserUtills
+    {
+        private static Random s_random = new Random();
+
+        public static void CreateEmptyLine()
+        {
+            Console.Write("\n");
+        }
+
+        public static string ReturnSpacebar()
+        {
+            return " ";
+        }
+
+        public static int ReturnRandomValue(int leftBoundInclusive, int rightBound)
+        {
+            return s_random.Next(leftBoundInclusive, rightBound);
+        }
+
+        public static int GetIndexFromUserInput(int maxValue)
+        {
+            int userInput;
+
+            do
+            {
+                Console.Write("Введите число: ");
+            }
+            while (int.TryParse(Console.ReadLine(), out userInput) == false || userInput <= 0 || userInput > maxValue);
+
+            return userInput - 1;
+        }
+
+        public static string ReturnSeparator()
+        {
+            return " | ";
         }
     }
 }
