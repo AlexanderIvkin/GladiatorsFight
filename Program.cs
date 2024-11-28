@@ -55,9 +55,9 @@ namespace GladiatorsFight
             int midDamage = 10;
             int lowDamage = 5;
 
-            _fighters.Add(new Critical(midHealth, midDamage));
-            _fighters.Add(new BothHands(highHealth, midDamage));
-            _fighters.Add(new RegeEater(midHealth, midDamage));
+            _fighters.Add(new Archer(midHealth, midDamage));
+            _fighters.Add(new Warrior(highHealth, midDamage));
+            _fighters.Add(new Berserk(midHealth, midDamage));
             _fighters.Add(new Mage(lowHealth, lowDamage));
             _fighters.Add(new Dodger(lowHealth, highDamage));
         }
@@ -218,11 +218,11 @@ namespace GladiatorsFight
         protected abstract bool TryApplySpecialAction();
     }
 
-    class Critical : Fighter
+    class Archer : Fighter
     {
         private int _criticalChance = 30;
 
-        public Critical(int health, int damage) : base(health, damage)
+        public Archer(int health, int damage) : base(health, damage)
         {
             Name = "Критовик";
         }
@@ -236,7 +236,7 @@ namespace GladiatorsFight
 
         public override Fighter Clone()
         {
-            return new Critical(MaxHealth, Damage);
+            return new Archer(MaxHealth, Damage);
         }
 
         protected internal override void ShowInfo()
@@ -272,13 +272,13 @@ namespace GladiatorsFight
         }
     }
 
-    class BothHands : Fighter
+    class Warrior : Fighter
     {
         private int _turnsCount = 1;
         private int _doubleAttackCount = 3;
         private int _currentAttackPerTurn = 1;
 
-        public BothHands(int health, int damage) : base(health, damage)
+        public Warrior(int health, int damage) : base(health, damage)
         {
             Name = "Двуручник";
         }
@@ -311,7 +311,7 @@ namespace GladiatorsFight
 
         public override Fighter Clone()
         {
-            return new BothHands(MaxHealth, Damage);
+            return new Warrior(MaxHealth, Damage);
         }
 
         protected internal override void ShowInfo()
@@ -328,13 +328,13 @@ namespace GladiatorsFight
         }
     }
 
-    class RegeEater : Fighter
+    class Berserk : Fighter
     {
         private int _currentRage = 0;
         private int _rageByDamage = 5;
         private int _rageToHeal = 15;
 
-        public RegeEater(int health, int damage) : base(health, damage)
+        public Berserk(int health, int damage) : base(health, damage)
         {
             Name = "Мазохист";
         }
@@ -364,7 +364,7 @@ namespace GladiatorsFight
 
         public override Fighter Clone()
         {
-            return new RegeEater(MaxHealth, Damage);
+            return new Berserk(MaxHealth, Damage);
         }
 
         protected internal override void ShowInfo()
